@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Settings2, Sparkles, AlertCircle, Zap, Archive, Cloud } from "lucide-react";
-import { SearchBar } from "./components/SearchBar";
-import { ResultsList } from "./components/ResultsList";
-import { Footer } from "./components/Footer";
-import { IndexPanel } from "./components/IndexPanel";
-import { CopilotPanel } from "./components/CopilotPanel";
-import { AgentPanel } from "./components/AgentPanel";
-import { SnapshotPanel } from "./components/SnapshotPanel";
-import { CloudSyncPanel } from "./components/CloudSyncPanel";
-import { search, getStatus, SearchResult, openFile } from "./api";
+import { SearchBar } from "./components/SearchBar.tsx";
+import { ResultsList } from "./components/ResultsList.tsx";
+import { Footer } from "./components/Footer.tsx";
+import { IndexPanel } from "./components/IndexPanel.tsx";
+import { CopilotPanel } from "./components/CopilotPanel.tsx";
+import { AgentPanel } from "./components/AgentPanel.tsx";
+import { SnapshotPanel } from "./components/SnapshotPanel.tsx";
+import { CloudSyncPanel } from "./components/CloudSyncPanel.tsx";
+import { search, getStatus, SearchResult, openFile } from "./api.ts";
 
 const DEBOUNCE_MS = 260;
 const MIN_QUERY_LEN = 2;

@@ -16,7 +16,7 @@ interface SnapshotInfo {
     compressed: boolean;
 }
 
-interface Toast {
+interface ToastItem {
     id: number;
     message: string;
     type: "success" | "error" | "info";
@@ -28,7 +28,7 @@ function formatDate(iso: string): string {
     } catch { return iso; }
 }
 
-function Toast({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: number) => void }) {
+function Toast({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: number) => void }) {
     return (
         <div className="fixed bottom-4 right-4 space-y-2 z-50">
             {toasts.map(t => (
@@ -64,12 +64,12 @@ export function SnapshotPanel() {
     const [selectedB, setSelectedB] = useState("");
     const [diffResult, setDiffResult] = useState<any>(null);
     const [diffLoading, setDiffLoading] = useState(false);
-    const [toasts, setToasts] = useState<Toast[]>([]);
+    const [toasts, setToasts] = useState<ToastItem[]>([]);
     const [activeTab, setActiveTab] = useState<"export" | "import" | "list" | "diff">("list");
 
     useEffect(() => { loadSnapshots(); }, []);
 
-    function addToast(message: string, type: Toast["type"] = "info") {
+    function addToast(message: string, type: ToastItem["type"] = "info") {
         const id = Date.now();
         setToasts(t => [...t, { id, message, type }]);
         setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
