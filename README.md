@@ -10,10 +10,12 @@ OmniSearch is a premium, privacy-centric desktop application designed to bridge 
 
 ## ✨ Features
 
-### 🔍 Hybrid Semantic Search
-Stop hunting for filenames. OmniSearch uses **Hybrid Search** (combining **Vector Embeddings** via Qdrant and **BM25 Lexical Search**) to find exactly what you're looking for based on *meaning*, not just keywords.
-- **Reranking**: Integrated BGE-reranker ensures the most relevant results appear at the top.
-- **Deep Parsing**: Extracts text from PDFs, Markdown, Word docs, and more.
+### 🔍 Multimodal Semantic Search
+Stop hunting for filenames. Powered by **Google Gemini Embedding 2**, OmniSearch understands more than just text. It performs true **Multimodal Search**, allowing you to find content across different formats in a unified vector space.
+- **Beyond Text**: Find images, audio, and video files based on their content and context, not just their metadata.
+- **Hybrid Engine**: Combines state-of-the-art **Vector Embeddings** with **BM25 Lexical Search** for pinpoint accuracy.
+- **Intelligent Reranking**: Integrated BGE-reranker ensures the most relevant results—whether text or media—appear at the top.
+- **Deep Parsing**: Native support for PDFs, Markdown, Word docs, images, and more.
 
 ### 🤖 AI Copilot & Agents
 - **Context-Aware Q&A**: Chat with your local knowledge base. The Copilot uses RAG (Retrieval-Augmented Generation) to answer questions based *only* on your files.
@@ -36,7 +38,7 @@ Built with **Tauri + React**, OmniSearch feels like a native utility with a mode
 - **Frontend**: [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), [Vite](https://vitejs.dev/).
 - **Desktop Bridge**: [Tauri](https://tauri.app/).
 - **Backend**: Python 3.10+, [Qdrant](https://qdrant.tech/) (Vector DB), [SQLite](https://www.sqlite.org/index.html) (Metadata).
-- **AI Models**: Google [Gemini](https://ai.google.dev/) (Embeddings & LLM), [BGE-Reranker](https://huggingface.co/BAAI/bge-reranker-base).
+- **AI Models**: **Google Gemini Embedding 2** (Multimodal text/image/video embeddings), **Gemini 2.0 Flash** (LLM for Copilot), and **BGE-Reranker**.
 - **Cloud**: Cloudflare R2 (Storage).
 
 ---
