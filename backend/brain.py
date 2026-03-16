@@ -1,30 +1,3 @@
-"""
-brain.py — OmniSearch FastAPI server.
-
-Phases 1-6 endpoints:
-
-  Indexing:
-    POST /index              — single file
-    POST /index-folder       — bulk folder (background)
-    DELETE /index            — remove file from index
-
-  Search:
-    POST /search             — hybrid search (BM25 + vector + rerank)
-    POST /search/vector      — vector-only (for comparison/testing)
-
-  Copilot:
-    POST /copilot            — RAG question answering (blocking)
-    POST /copilot/stream     — RAG with SSE streaming
-
-  Watcher:
-    POST /watch              — add folder to live watcher
-    DELETE /watch            — remove folder
-    GET  /watched            — list watched folders
-
-  System:
-    GET  /status             — health + collection stats + pipeline info
-"""
-
 import json
 import logging
 import os
@@ -104,6 +77,24 @@ def _index_single_file(file_path: str) -> dict:
     except Exception as e:
         logger.warning(f"BM25 upsert failed for {filename}: {e}")
 
+    # Write metadata to SQLite
+    try:
+        from storage_manager import upsert_file_metadata, hash_embedding, _hash_file
+        content_hash = _hash_file(path)
+        emb_hash = hash_embedding(embedding)
+        upsert_file_metadata(
+            file_id=point_id,
+            file_path=str(path.resolve()),
+            filename=filename,
+            file_type=file_type,
+            size_bytes=path.stat().st_size,
+            content_hash=content_hash,
+            embedding_hash=emb_hash,
+            qdrant_point=point_id,
+        )
+    except Exception as meta_err:
+        logger.warning(f"SQLite metadata write failed for {filename}: {meta_err}")
+
     logger.info(f"Indexed: {filename} (id={point_id[:8]}…)")
     return {
         "filename":  filename,
@@ -117,6 +108,19 @@ def _index_single_file(file_path: str) -> dict:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Bootstrap OS-aware storage directories
+    try:
+        from storage_manager import bootstrap_storage, metadata_stats
+        store_paths = bootstrap_storage()
+        # Redirect config paths to OS app-data dir
+        settings.qdrant_path = str(store_paths["qdrant"])
+        settings.bm25_index_path = str(store_paths["bm25"] / "bm25_index.pkl")
+        logger.info(f"Storage: {store_paths['root']}")
+        db_stats = metadata_stats()
+        logger.info(f"Metadata DB: {db_stats['files']} files, {db_stats['indexed']} indexed")
+    except Exception as e:
+        logger.warning(f"Storage manager init failed (using defaults): {e}")
+
     # Pre-load BM25 index on startup
     try:
         from bm25_index import get_bm25_index
@@ -129,6 +133,27 @@ async def lifespan(app: FastAPI):
     logger.info(f"OmniSearch backend live — http://localhost:{settings.port}")
     yield
     watcher.stop()
+    # Auto-snapshot on clean shutdown — never lose index state
+    try:
+        from snapshot import export_snapshot, prune_snapshots
+        snap_stats = collection_stats()
+        if (snap_stats.get("points_count") or 0) > 0:
+            snap_path = export_snapshot(label="shutdown", compress=True)
+            prune_snapshots(keep=10)
+            logger.info(f"Auto-snapshot saved: {snap_path.split('/')[-1]}")
+    except Exception as snap_err:
+        logger.warning(f"Auto-snapshot failed (non-fatal): {snap_err}")
+
+    # Optional cloud sync on shutdown
+    if settings.enable_cloud_sync and settings.sync_on_shutdown:
+        try:
+            from cloud_sync import sync_embeddings_to_r2, sync_metadata_to_r2
+            sync_embeddings_to_r2(settings.sync_user_id, delta_only=True)
+            sync_metadata_to_r2(settings.sync_user_id)
+            logger.info("Cloud sync on shutdown complete")
+        except Exception as sync_err:
+            logger.warning(f"Cloud sync on shutdown failed (non-fatal): {sync_err}")
+
     logger.info("OmniSearch backend shutdown")
 
 
@@ -472,6 +497,181 @@ async def classify_query(req: AgentRequest):
     }
 
 
+# ── Snapshot endpoints ────────────────────────────────────────────
+
+class SnapshotExportRequest(BaseModel):
+    label: str = ""
+    compress: bool = False
+
+class SnapshotImportRequest(BaseModel):
+    snapshot_path: str
+    merge: bool = True
+    verify_checksum: bool = True
+
+class SnapshotDiffRequest(BaseModel):
+    path_a: str
+    path_b: str
+
+class SnapshotDeltaRequest(BaseModel):
+    since_snapshot_path: str
+    label: str = "delta"
+    compress: bool = False
+
+class SnapshotPruneRequest(BaseModel):
+    keep: int = 5
+
+
+@app.post("/snapshot/export")
+async def snapshot_export(req: SnapshotExportRequest, background_tasks: BackgroundTasks):
+    """
+    Export all Qdrant vectors + BM25 metadata to a portable JSON snapshot.
+
+    Returns immediately with the snapshot path.
+    Use compress=true to gzip (~60% smaller, same restore time).
+    """
+    try:
+        from snapshot import export_snapshot
+        path = export_snapshot(label=req.label, compress=req.compress)
+        import os
+        size_kb = os.path.getsize(path) // 1024
+        return {
+            "status":   "ok",
+            "path":     path,
+            "filename": Path(path).name,
+            "size_kb":  size_kb,
+        }
+    except Exception as e:
+        logger.error(f"Snapshot export failed: {e}")
+        raise HTTPException(500, f"Export failed: {e}")
+
+
+@app.post("/snapshot/import")
+async def snapshot_import(req: SnapshotImportRequest, background_tasks: BackgroundTasks):
+    """
+    Restore vectors from a snapshot into Qdrant + BM25.
+
+    merge=true  → upsert on top of existing data (safe default)
+    merge=false → wipe collection first, then import (full restore)
+
+    Runs in background — returns immediately.
+    Poll /status for updated points_count.
+    """
+    path = Path(req.snapshot_path)
+    if not path.exists():
+        raise HTTPException(404, f"Snapshot not found: {req.snapshot_path}")
+
+    def _run():
+        try:
+            from snapshot import import_snapshot
+            result = import_snapshot(
+                req.snapshot_path,
+                merge=req.merge,
+                verify_checksum=req.verify_checksum,
+            )
+            logger.info(f"Snapshot import done: {result}")
+        except Exception as e:
+            logger.error(f"Snapshot import failed: {e}")
+
+    background_tasks.add_task(_run)
+    return {
+        "status":   "importing",
+        "snapshot": path.name,
+        "merge":    req.merge,
+    }
+
+
+@app.post("/snapshot/diff")
+async def snapshot_diff(req: SnapshotDiffRequest):
+    """
+    Compare two snapshots and return what changed between them.
+
+    Great for auditing what was indexed in a time window,
+    or figuring out the minimal delta to upload to cloud.
+    """
+    for p in [req.path_a, req.path_b]:
+        if not Path(p).exists():
+            raise HTTPException(404, f"Snapshot not found: {p}")
+    try:
+        from snapshot import diff_snapshots
+        diff = diff_snapshots(req.path_a, req.path_b)
+        return {
+            "added":     len(diff.added),
+            "removed":   len(diff.removed),
+            "changed":   len(diff.changed),
+            "unchanged": diff.unchanged,
+            "summary":   diff.summary(),
+            "added_paths":   diff.added[:20],    # first 20 for display
+            "removed_paths": diff.removed[:20],
+            "changed_paths": diff.changed[:20],
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Diff failed: {e}")
+
+
+@app.post("/snapshot/delta")
+async def snapshot_delta(req: SnapshotDeltaRequest):
+    """
+    Export only entries that changed since the given baseline snapshot.
+
+    This is the efficient sync primitive — instead of re-uploading
+    everything, export only what's new or modified.
+    """
+    if not Path(req.since_snapshot_path).exists():
+        raise HTTPException(404, f"Base snapshot not found: {req.since_snapshot_path}")
+    try:
+        from snapshot import export_delta_snapshot
+        path = export_delta_snapshot(
+            since_snapshot_path=req.since_snapshot_path,
+            label=req.label,
+            compress=req.compress,
+        )
+        import os
+        size_kb = os.path.getsize(path) // 1024
+        return {
+            "status":   "ok",
+            "path":     path,
+            "filename": Path(path).name,
+            "size_kb":  size_kb,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Delta export failed: {e}")
+
+
+@app.get("/snapshot/list")
+async def snapshot_list():
+    """List all snapshots on disk, newest first."""
+    from snapshot import list_snapshots
+    snaps = list_snapshots()
+    return {
+        "snapshots": [
+            {
+                "filename":   s.filename,
+                "path":       s.path,
+                "created_at": s.created_at,
+                "count":      s.count,
+                "size_kb":    s.size_bytes // 1024,
+                "compressed": s.compressed,
+            }
+            for s in snaps
+        ],
+        "total": len(snaps),
+    }
+
+
+@app.post("/snapshot/prune")
+async def snapshot_prune(req: SnapshotPruneRequest):
+    """Delete all but the N most recent snapshots."""
+    if req.keep < 1:
+        raise HTTPException(422, "keep must be >= 1")
+    from snapshot import prune_snapshots
+    deleted = prune_snapshots(keep=req.keep)
+    return {
+        "deleted": deleted,
+        "count":   len(deleted),
+        "kept":    req.keep,
+    }
+
+
 # ── Watcher endpoints ──────────────────────────────────────────────
 
 @app.post("/watch")
@@ -491,6 +691,122 @@ async def remove_watch(req: WatchFolderRequest):
 @app.get("/watched")
 async def get_watched():
     return {"folders": watcher.watched_folders()}
+
+
+# ── Cloud sync endpoints ──────────────────────────────────────────
+
+class SyncPushRequest(BaseModel):
+    user_id: Optional[str] = None
+    delta_only: bool = True
+    include_metadata: bool = True
+
+class SyncPullRequest(BaseModel):
+    user_id: Optional[str] = None
+    snapshot_key: Optional[str] = None
+    merge: bool = True
+
+
+@app.post("/sync")
+async def sync_push(req: SyncPushRequest, background_tasks: BackgroundTasks):
+    """
+    Push embeddings (+ optionally metadata) to Cloudflare R2.
+
+    delta_only=true  → only upload entries changed since last snapshot (fast)
+    delta_only=false → full snapshot upload (use after major re-index)
+
+    Runs in background — returns immediately.
+    """
+    if not settings.enable_cloud_sync:
+        raise HTTPException(403, "Cloud sync disabled. Set ENABLE_CLOUD_SYNC=true in .env")
+
+    user_id = req.user_id or settings.sync_user_id
+
+    def _run():
+        try:
+            from cloud_sync import sync_embeddings_to_r2, sync_metadata_to_r2
+            result = sync_embeddings_to_r2(user_id, delta_only=req.delta_only)
+            logger.info(f"Sync push result: {result}")
+            if req.include_metadata:
+                sync_metadata_to_r2(user_id)
+        except Exception as e:
+            logger.error(f"Background sync push failed: {e}")
+
+    background_tasks.add_task(_run)
+    return {
+        "status":     "queued",
+        "direction":  "push",
+        "user_id":    user_id,
+        "delta_only": req.delta_only,
+    }
+
+
+@app.post("/sync/pull")
+async def sync_pull(req: SyncPullRequest, background_tasks: BackgroundTasks):
+    """
+    Pull the latest snapshot from R2 and restore into Qdrant.
+
+    snapshot_key: specific R2 key to restore. If None, uses most recent.
+    merge=true    → upsert on top of existing (safe)
+    merge=false   → wipe first, then restore (full rebuild)
+
+    Runs in background.
+    """
+    if not settings.enable_cloud_sync:
+        raise HTTPException(403, "Cloud sync disabled. Set ENABLE_CLOUD_SYNC=true in .env")
+
+    user_id = req.user_id or settings.sync_user_id
+
+    def _run():
+        try:
+            from cloud_sync import pull_embeddings_from_r2
+            result = pull_embeddings_from_r2(
+                user_id,
+                snapshot_key=req.snapshot_key,
+                merge=req.merge,
+            )
+            logger.info(f"Sync pull result: {result}")
+        except Exception as e:
+            logger.error(f"Background sync pull failed: {e}")
+
+    background_tasks.add_task(_run)
+    return {
+        "status":    "queued",
+        "direction": "pull",
+        "user_id":   user_id,
+        "merge":     req.merge,
+    }
+
+
+@app.get("/sync/status")
+async def sync_status():
+    """
+    Return cloud sync status: last push/pull times, R2 snapshot list.
+    Does NOT contact R2 if cloud sync is disabled.
+    """
+    try:
+        from cloud_sync import get_sync_status
+        return get_sync_status(settings.sync_user_id)
+    except Exception as e:
+        return {"cloud_sync_enabled": settings.enable_cloud_sync, "error": str(e)}
+
+
+@app.get("/sync/list")
+async def sync_list_remote():
+    """List all snapshots stored in R2 for the current user."""
+    if not settings.enable_cloud_sync:
+        raise HTTPException(403, "Cloud sync disabled")
+    from cloud_sync import list_r2_snapshots
+    return {"snapshots": list_r2_snapshots(settings.sync_user_id)}
+
+
+@app.get("/metadata/stats")
+async def metadata_stats_endpoint():
+    """Return SQLite metadata database stats."""
+    try:
+        from storage_manager import metadata_stats
+        return metadata_stats()
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
 
 # ── Status ─────────────────────────────────────────────────────────
