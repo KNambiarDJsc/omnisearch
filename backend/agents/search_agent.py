@@ -44,7 +44,6 @@ class SearchAgent(BaseAgent):
                 metadata={"count": 0},
             )
 
-        # Build a readable file list for display
         lines = [f"Found {len(results)} relevant file(s):\n"]
         for i, r in enumerate(results, 1):
             score_pct = int(r.score * 100)

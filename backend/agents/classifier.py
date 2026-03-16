@@ -33,43 +33,35 @@ logger = logging.getLogger("agents.classifier")
 
 @dataclass
 class IntentResult:
-    agent: str                          # agent name or "orchestrator"
-    confidence: float                   # 0.0 - 1.0
+    agent: str
+    confidence: float
     reasoning: str
-    workflow_hint: list[str] = field(default_factory=list)  # for orchestrator
+    workflow_hint: list[str] = field(default_factory=list)
 
 
-# ── Rule-based patterns (fast path) ───────────────────────────────
 
 _RULES: list[tuple[str, str, float]] = [
-    # (regex pattern, agent, confidence)
 
-    # Email
     (r"\b(write|draft|compose|create|generate)\s+(an?\s+)?(email|message|letter)\b", "email", 0.95),
     (r"\bemail\b.*(from|about|based on|summariz)", "email", 0.90),
 
-    # Summary
     (r"\b(summarize|summarise|summary|tldr|tl;dr|overview|brief|synopsis)\b", "summary", 0.92),
     (r"\bkey (points|takeaways|ideas|findings)\b", "summary", 0.88),
     (r"\bwhat('?s| is| are) (this|the main|the key).*(about|in|from)\b", "summary", 0.82),
 
-    # Media / Audio / Video
     (r"\b(transcribe|transcript)\b", "media", 0.95),
     (r"\b(meeting|call|recording|audio|video)\b.*(discuss|said|decided|action)", "media", 0.88),
     (r"\banalyze\b.*(audio|video|image|photo|recording|mp3|mp4|wav)\b", "media", 0.92),
     (r"\bwhat('?s| is).*(in|on).*(image|photo|picture|screenshot)\b", "media", 0.90),
 
-    # QA
     (r"\b(what|who|when|where|why|how)\b.*(did|was|were|has|have|is|are)\b", "qa", 0.75),
     (r"\b(tell me|explain|describe).*(about|what|how|why)\b", "qa", 0.72),
     (r"\bfind (information|details|facts|answers?) (about|on|in)\b", "qa", 0.80),
 
-    # Orchestrator (multi-step workflows)
     (r"\b(prepare|compile|create|build|generate)\s+a?\s*(report|analysis|review|digest)\b", "orchestrator", 0.88),
     (r"\b(from|across|over)\s+(all|my|the)\s+(files|documents|papers|notes)\b", "orchestrator", 0.82),
     (r"\b(research|analyze|process)\s+(all|multiple|several|my)\b", "orchestrator", 0.78),
 
-    # Search (default for find/show/list)
     (r"\b(find|search|show|list|get|look for)\b.*(files?|documents?|papers?|notes?)\b", "search", 0.85),
     (r"\bdo i have\b.*(files?|documents?|anything)\b", "search", 0.88),
     (r"\bwhat files?\b", "search", 0.83),
@@ -101,7 +93,6 @@ def _rule_classify(query: str) -> Optional[IntentResult]:
     return None
 
 
-# ── LLM-based classification (fallback) ───────────────────────────
 
 _CLASSIFIER_SYSTEM = """You are an intent classifier for a file search assistant.
 
@@ -139,7 +130,7 @@ def _llm_classify(query: str) -> IntentResult:
 
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model="gemini-2.0-flash",   # fast flash model for classification
+            model="gemini-2.0-flash",
             contents=f"Classify this query: {query}",
             config=types.GenerateContentConfig(
                 system_instruction=_CLASSIFIER_SYSTEM,
@@ -149,7 +140,6 @@ def _llm_classify(query: str) -> IntentResult:
         )
 
         text = response.text or ""
-        # Strip markdown code fences if present
         text = re.sub(r"```(?:json)?|```", "", text).strip()
         data = json.loads(text)
 
@@ -169,7 +159,6 @@ def _llm_classify(query: str) -> IntentResult:
         )
 
 
-# ── Public API ─────────────────────────────────────────────────────
 
 class IntentClassifier:
     """Stateless intent classifier. Fast rule-based → LLM fallback."""
@@ -188,13 +177,11 @@ def classify_intent(query: str) -> IntentResult:
     if not query or not query.strip():
         return IntentResult(agent="search", confidence=1.0, reasoning="Empty query defaults to search")
 
-    # Fast rule-based classification
     result = _rule_classify(query)
     if result:
         logger.debug(f"Rule classified '{query[:40]}' → {result.agent} ({result.confidence:.0%})")
         return result
 
-    # LLM fallback for ambiguous queries
     logger.debug(f"Rule miss for '{query[:40]}' — falling back to LLM classifier")
     result = _llm_classify(query)
     logger.debug(f"LLM classified '{query[:40]}' → {result.agent} ({result.confidence:.0%})")

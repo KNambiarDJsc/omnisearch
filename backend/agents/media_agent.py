@@ -77,13 +77,11 @@ class MediaAgent(BaseAgent):
     def run(self, query: str, context: dict[str, Any]) -> AgentResult:
         documents = context.get("documents", [])
 
-        # Filter to media files only
         media_docs = [
             d for d in documents
             if Path(d.get("file_path", "")).suffix.lower() in self.MEDIA_EXTENSIONS
         ]
 
-        # If no media docs in context, search for them
         if not media_docs:
             from search import hybrid_search
             results = hybrid_search(query, top_k=8)
@@ -92,10 +90,8 @@ class MediaAgent(BaseAgent):
                 if Path(r.file_path).suffix.lower() in self.MEDIA_EXTENSIONS
             ]
 
-        # If still none, fall through to text docs as fallback
         if not media_docs:
             if documents:
-                # Use whatever we have
                 media_docs = documents[:3]
             else:
                 return AgentResult(
@@ -107,7 +103,6 @@ class MediaAgent(BaseAgent):
                     sources=[],
                 )
 
-        # Try direct multimodal analysis for the first media file
         primary = media_docs[0]
         file_path = primary.get("file_path", "")
         ext = Path(file_path).suffix.lower()
@@ -126,7 +121,6 @@ class MediaAgent(BaseAgent):
                 },
             )
 
-        # Fallback: use snippet context + LLM
         doc_context = self._get_doc_context(media_docs, max_chars=4000)
         is_audio_video = ext in {".mp3", ".wav", ".m4a", ".mp4", ".mov"}
 
@@ -173,7 +167,6 @@ Analyze:"""
         if not path.exists():
             return None
 
-        # Size limits: images < 10MB, audio < 15MB, video < 30MB
         size_mb = path.stat().st_size / (1024 * 1024)
         limits = {
             **dict.fromkeys([".png", ".jpg", ".jpeg", ".webp", ".gif"], 10),

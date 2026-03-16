@@ -123,7 +123,7 @@ class BaseAgent(ABC):
             header = f"[Document {i}: {doc.get('filename', 'unknown')}]"
             full_text = self._try_full_text(doc.get("file_path", ""))
             body = full_text or doc.get("snippet", "[no content]")
-            body = " ".join(body.split())  # normalize whitespace
+            body = " ".join(body.split())
 
             section = f"{header}\n{body}"
             if total + len(section) > max_chars:

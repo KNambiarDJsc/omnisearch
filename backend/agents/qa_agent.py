@@ -38,7 +38,6 @@ class QAAgent(BaseAgent):
     def run(self, query: str, context: dict[str, Any]) -> AgentResult:
         documents = context.get("documents", [])
 
-        # Self-retrieval if no docs provided
         if not documents:
             from search import hybrid_search
             results = hybrid_search(query, top_k=5)

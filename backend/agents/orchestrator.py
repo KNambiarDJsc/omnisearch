@@ -37,16 +37,15 @@ import operator
 logger = logging.getLogger("agents.orchestrator")
 
 
-# ── Workflow state ─────────────────────────────────────────────────
 
 class WorkflowState(TypedDict):
     """Shared state passed between all LangGraph nodes."""
     query: str
-    plan: list[str]                    # steps determined by plan_node
-    documents: list[dict]              # retrieved by retrieve_node
-    step_results: Annotated[list[dict], operator.add]  # accumulated per node
-    final_output: str                  # compiled by compile_node
-    sources: list[dict]                # final source list
+    plan: list[str]
+    documents: list[dict]
+    step_results: Annotated[list[dict], operator.add]
+    final_output: str
+    sources: list[dict]
     error: Optional[str]
     metadata: dict[str, Any]
 
@@ -66,18 +65,16 @@ class OrchestratorResult:
         return asdict(self)
 
 
-# ── Workflow event for SSE streaming ─────────────────────────────
 
 @dataclass
 class WorkflowEvent:
-    type: str        # "plan" | "step_start" | "step_done" | "chunk" | "done" | "error"
+    type: str
     data: Any
 
     def to_sse(self) -> str:
         return f"data: {json.dumps({'type': self.type, 'data': self.data})}\n\n"
 
 
-# ── LangGraph nodes ────────────────────────────────────────────────
 
 def plan_node(state: WorkflowState) -> dict:
     """
@@ -136,9 +133,7 @@ def process_node(state: WorkflowState) -> dict:
             "step_results": [{"step": "process", "output": "No documents to process", "error": True}],
         }
 
-    # Determine which processing agent to use from the plan
-    # Look for the first non-search, non-compile agent
-    process_agent = "summary"  # default
+    process_agent = "summary"
     for step in plan:
         if step in ("summary", "qa", "email", "media"):
             process_agent = step
@@ -146,7 +141,6 @@ def process_node(state: WorkflowState) -> dict:
 
     logger.info(f"Processing {len(documents)} docs with agent '{process_agent}'")
 
-    # For large document sets, process in batches to stay within context limits
     BATCH_SIZE = 5
     batches = [documents[i:i+BATCH_SIZE] for i in range(0, len(documents), BATCH_SIZE)]
 
@@ -195,7 +189,6 @@ def compile_node(state: WorkflowState) -> dict:
 
     logger.info("Compiling final output")
 
-    # Gather processed content
     process_outputs = [
         s["output"] for s in step_results
         if s.get("step") == "process" and s.get("output")
@@ -209,7 +202,6 @@ def compile_node(state: WorkflowState) -> dict:
 
     combined = "\n\n".join(process_outputs)
 
-    # Choose compile prompt based on the workflow type
     if "email" in plan:
         final_prompt = f"User request: {query}\n\nContent:\n{combined}\n\nProduce the final email:"
         system = "You are a professional email writer. Finalize this email draft."
@@ -228,7 +220,6 @@ def compile_node(state: WorkflowState) -> dict:
     }
 
 
-# ── Graph construction ─────────────────────────────────────────────
 
 def _build_graph():
     """Build and compile the LangGraph StateGraph."""
@@ -241,13 +232,11 @@ def _build_graph():
 
     graph = StateGraph(WorkflowState)
 
-    # Add nodes
     graph.add_node("plan", plan_node)
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("process", process_node)
     graph.add_node("compile", compile_node)
 
-    # Define edges
     graph.set_entry_point("plan")
     graph.add_edge("plan", "retrieve")
     graph.add_edge("retrieve", "process")
@@ -268,7 +257,6 @@ def get_graph():
     return _compiled_graph
 
 
-# ── Public API ─────────────────────────────────────────────────────
 
 def run_workflow(query: str) -> OrchestratorResult:
     """
@@ -348,12 +336,10 @@ def stream_workflow(query: str) -> Generator[WorkflowEvent, None, None]:
     }
 
     try:
-        # LangGraph stream mode — yields (node_name, state_update) tuples
         for node_name, state_update in graph.stream(initial_state):
             label = step_names.get(node_name, node_name)
             yield WorkflowEvent("step_start", {"step": node_name, "label": label})
 
-            # Emit meaningful progress from each node
             if node_name == "plan" and "plan" in state_update:
                 yield WorkflowEvent("plan", {"steps": state_update["plan"]})
 
@@ -377,7 +363,6 @@ def stream_workflow(query: str) -> Generator[WorkflowEvent, None, None]:
 
             elif node_name == "compile" and "final_output" in state_update:
                 output = state_update["final_output"]
-                # Stream the final output word by word for a typing effect
                 words = output.split()
                 chunk_size = 8
                 for i in range(0, len(words), chunk_size):
@@ -394,7 +379,6 @@ def stream_workflow(query: str) -> Generator[WorkflowEvent, None, None]:
         yield WorkflowEvent("error", str(e))
 
 
-# ── Internal helpers ───────────────────────────────────────────────
 
 _PLANNER_SYSTEM = """You are a workflow planner for a file search assistant.
 

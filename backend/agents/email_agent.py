@@ -77,7 +77,6 @@ class EmailAgent(BaseAgent):
 
         doc_context = self._get_doc_context(documents, max_chars=6000)
 
-        # Extract any recipient/tone hints from the query
         recipient_hint = ""
         if "to " in query.lower():
             match = re.search(r"to ([a-zA-Z\s]+?)(?:\s+about|\s+from|\s+based|$)", query, re.IGNORECASE)
@@ -96,7 +95,6 @@ Write the email:"""
 
         email_text = self._call_gemini(prompt, system=_SYSTEM, temperature=0.4, max_tokens=800)
 
-        # Parse subject line for metadata
         subject = ""
         subject_match = re.match(r"Subject:\s*(.+)", email_text, re.IGNORECASE)
         if subject_match:

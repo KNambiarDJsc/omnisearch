@@ -55,7 +55,6 @@ class SummaryAgent(BaseAgent):
     def run(self, query: str, context: dict[str, Any]) -> AgentResult:
         documents = context.get("documents", [])
 
-        # If a specific file_path was given, use that
         specific_file = context.get("file_path")
         if specific_file:
             full_text = self._try_full_text(specific_file)
@@ -67,10 +66,8 @@ class SummaryAgent(BaseAgent):
                     "snippet": full_text[:200],
                 }]
 
-        # Self-retrieval if still no docs
         if not documents:
             from search import hybrid_search
-            # Strip "summarize" prefix for better retrieval
             clean_query = (query
                            .lower()
                            .replace("summarize", "")
@@ -108,7 +105,6 @@ Provide a combined structured summary."""
 
         summary = self._call_gemini(prompt, system=_SYSTEM, temperature=0.2, max_tokens=1024)
 
-        # Count words in source docs (rough)
         total_words = sum(
             len(d.get("snippet", "").split())
             for d in documents

@@ -27,7 +27,6 @@ def _build_registry() -> dict[str, BaseAgent]:
     return {a.name: a for a in agents}
 
 
-# Module-level singleton — built on first access
 _registry: dict[str, BaseAgent] | None = None
 
 
