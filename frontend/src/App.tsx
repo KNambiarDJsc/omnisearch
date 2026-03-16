@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Settings2, Sparkles, AlertCircle, Zap } from "lucide-react";
+import { Settings2, Sparkles, AlertCircle, Zap, Archive, Cloud } from "lucide-react";
 import { SearchBar } from "./components/SearchBar";
 import { ResultsList } from "./components/ResultsList";
 import { Footer } from "./components/Footer";
 import { IndexPanel } from "./components/IndexPanel";
 import { CopilotPanel } from "./components/CopilotPanel";
 import { AgentPanel } from "./components/AgentPanel";
+import { SnapshotPanel } from "./components/SnapshotPanel";
+import { CloudSyncPanel } from "./components/CloudSyncPanel";
 import { search, getStatus, SearchResult, openFile } from "./api";
 
 const DEBOUNCE_MS = 260;
 const MIN_QUERY_LEN = 2;
 
-type View = "search" | "copilot" | "agent" | "index";
+type View = "search" | "copilot" | "agent" | "index" | "snapshot" | "cloud";
 
 export default function App() {
     const [query, setQuery] = useState("");
@@ -86,6 +88,8 @@ export default function App() {
         if (mod && e.key === "k") { e.preventDefault(); setView("copilot"); return; }
         if (mod && e.key === "j") { e.preventDefault(); setView("agent"); return; }
         if (mod && e.key === ",") { e.preventDefault(); setView("index"); return; }
+        if (mod && e.key === "b") { e.preventDefault(); setView("snapshot"); return; }
+        if (mod && e.key === "l") { e.preventDefault(); setView("cloud"); return; }
 
         if (view !== "search") return;
 
@@ -131,6 +135,8 @@ export default function App() {
                                 <NavBtn icon={<Sparkles size={14} />} label="Copilot (⌘K)" onClick={() => setView("copilot")} />
                                 <NavBtn icon={<Zap size={14} />} label="Agents (⌘J)" onClick={() => setView("agent")} />
                                 <NavBtn icon={<Settings2 size={14} />} label="Index (⌘,)" onClick={() => setView("index")} />
+                                <NavBtn icon={<Archive size={14} />} label="Snapshots (⌘B)" onClick={() => setView("snapshot")} />
+                                <NavBtn icon={<Cloud size={14} />} label="Cloud Sync (⌘L)" onClick={() => setView("cloud")} />
                             </div>
                         </div>
 
@@ -192,6 +198,32 @@ export default function App() {
                             shortcut="⌘,"
                         />
                         <IndexPanel onClose={() => setView("search")} />
+                    </>
+                )}
+
+                {view === "snapshot" && (
+                    <>
+                        <ViewHeader
+                            icon={<Archive size={14} className="text-zinc-400" />}
+                            title="Snapshots"
+                            subtitle="Export · Restore · Diff"
+                            onBack={() => setView("search")}
+                            shortcut="⌘B"
+                        />
+                        <SnapshotPanel />
+                    </>
+                )}
+
+                {view === "cloud" && (
+                    <>
+                        <ViewHeader
+                            icon={<Cloud size={14} className="text-blue-400" />}
+                            title="Cloud Sync"
+                            subtitle="Cloudflare R2 backup"
+                            onBack={() => setView("search")}
+                            shortcut="⌘L"
+                        />
+                        <CloudSyncPanel />
                     </>
                 )}
             </div>
