@@ -1,10 +1,3 @@
-"""
-agents/registry.py — Central agent registry.
-
-Maps agent names to agent classes.
-Provides run_agent() as the single dispatch entry point.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -16,7 +9,6 @@ logger = logging.getLogger("agents.registry")
 
 
 def _build_registry() -> dict[str, BaseAgent]:
-    """Lazy import and instantiate all agents."""
     from agents.search_agent import SearchAgent
     from agents.qa_agent import QAAgent
     from agents.summary_agent import SummaryAgent
