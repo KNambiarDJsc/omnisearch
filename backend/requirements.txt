@@ -8,15 +8,15 @@ google-genai==0.8.0
 # Vector DB
 qdrant-client==1.9.1
 
-# BM25 keyword search (Phase 4)
+# BM25 keyword search
 rank-bm25==0.2.2
 
-# Reranker cross-encoder (Phase 5)
+# Reranker cross-encoder
 sentence-transformers==3.1.1
-torch==2.4.0          # CPU-only; change to torch-cuda for GPU
+torch==2.4.0
 
 # Document parsing
-markitdown==0.0.12
+markitdown>=0.0.10
 
 # API
 python-multipart==0.0.9
