@@ -18,7 +18,7 @@ function SourceIcon({ fileType }: { fileType: string }) {
     return <File size={sz} className={`${cls} text-zinc-400`} />;
 }
 
-function SourceCard({ source, index }: { source: CopilotSource; index: number }) {
+function SourceCard({ source }: { source: CopilotSource }) {
     return (
         <button
             onClick={() => openFile(source.file_path)}
@@ -164,8 +164,8 @@ export function CopilotPanel({ initialQuery = "" }: CopilotPanelProps) {
             {sources.length > 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 overflow-x-auto">
                     <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex-shrink-0">Sources</span>
-                    {sources.map((s, i) => (
-                        <SourceCard key={s.file_path} source={s} index={i} />
+                    {sources.map((s) => (
+                        <SourceCard key={s.file_path} source={s} />
                     ))}
                 </div>
             )}

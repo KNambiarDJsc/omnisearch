@@ -257,7 +257,7 @@ export function openFile(filePath: string): void {
     try {
         // @ts-ignore — Tauri API available in desktop build
         if (window.__TAURI__) {
-            import("@tauri-apps/api/shell").then(({ open }) => open(filePath));
+            import("@tauri-apps/plugin-opener").then(({ openPath }) => openPath(filePath));
         }
     } catch { }
 }
