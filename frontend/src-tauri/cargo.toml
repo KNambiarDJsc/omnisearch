@@ -5,13 +5,8 @@ description = "OmniSearch — Local Multimodal AI Search"
 authors = []
 license = ""
 repository = ""
-default-run = "omnisearch"
 edition = "2021"
 rust-version = "1.77.2"
-
-[lib]
-name = "omnisearch_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
