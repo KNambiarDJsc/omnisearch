@@ -27,29 +27,33 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
-            // Start Python backend sidecar
+            // Start Python backend
             sidecar::start_brain(app.handle())?;
 
+            // Platform-specific shortcut
             #[cfg(target_os = "macos")]
             let shortcut = Shortcut::new(Some(Modifiers::SUPER), Code::Space);
 
             #[cfg(not(target_os = "macos"))]
-            let shortcut = Shortcut::new(Some(Modifiers::ALT), Code::Space);
+            // FIX: Avoid ALT+SPACE (Windows system conflict)
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space);
 
             let handle = app.handle().clone();
 
-            app.global_shortcut()
-                .on_shortcut(shortcut, move |_app, _shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        toggle_window(&handle);
-                    }
-                })?;
+            // Safe shortcut registration (no crash)
+            if let Err(e) = app.global_shortcut().on_shortcut(shortcut, move |_app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    toggle_window(&handle);
+                }
+            }) {
+                eprintln!("[shortcut] failed to register: {}", e);
+            }
 
             println!("[omnisearch] setup complete");
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Hide instead of quit when user clicks X
+            // Hide instead of closing app
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();
