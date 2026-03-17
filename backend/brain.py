@@ -24,8 +24,6 @@ logging.basicConfig(
 logger = logging.getLogger("brain")
 
 
-# ── Watcher singleton ──────────────────────────────────────────────
-
 def _sync_index_callback(file_path: str) -> None:
     try:
         _index_single_file(file_path)
@@ -840,7 +838,7 @@ async def status():
 
 if __name__ == "__main__":
     uvicorn.run(
-        "brain:app",
+        app,
         host=settings.host,
         port=settings.port,
         reload=False,

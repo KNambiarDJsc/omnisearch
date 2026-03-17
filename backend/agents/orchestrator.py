@@ -406,7 +406,9 @@ def _plan_workflow(query: str) -> list[str]:
     from config import settings
 
     try:
-        api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+        api_key = settings.gemini_api_key
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not set")
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -467,7 +469,9 @@ def _call_gemini_compile(prompt: str, system: str) -> str:
     from google.genai import types
     from config import settings
 
-    api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+    api_key = settings.gemini_api_key
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not set")
     client = genai.Client(api_key=api_key)
 
     response = client.models.generate_content(
