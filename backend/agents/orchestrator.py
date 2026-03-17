@@ -32,6 +32,7 @@ import logging
 import time
 from dataclasses import dataclass, field, asdict
 from typing import Any, Generator, Optional, TypedDict, Annotated
+from pydantic import SkipValidation
 import operator
 
 logger = logging.getLogger("agents.orchestrator")
@@ -43,7 +44,7 @@ class WorkflowState(TypedDict):
     query: str
     plan: list[str]
     documents: list[dict]
-    step_results: Annotated[list[dict], operator.add]
+    step_results: Annotated[list[dict], operator.add, SkipValidation]
     final_output: str
     sources: list[dict]
     error: Optional[str]

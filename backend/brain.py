@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, SkipValidation
 
 from config import settings
 from embedder import embed_file, get_snippet, WATCHED_EXTENSIONS
@@ -161,8 +161,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="OmniSearch API",
-    description="Local multimodal semantic search — Phases 1-6",
-    version="0.4.0",
+    description="Local multimodal semantic search — Phase 8",
+    version="0.6.0",
     lifespan=lifespan,
 )
 
