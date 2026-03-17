@@ -17,6 +17,13 @@ from storage import upsert_file, delete_file, collection_stats
 from search import hybrid_search, semantic_search
 from watcher import FolderWatcher
 
+if settings.gemini_api_key:
+    os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
+else:
+    print("❌ GEMINI_API_KEY still missing in settings")
+
+print("DEBUG KEY:", settings.gemini_api_key[:10] if settings.gemini_api_key else "NOT FOUND")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
