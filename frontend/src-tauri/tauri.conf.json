@@ -12,16 +12,17 @@
     "app": {
         "windows": [
             {
+                "label": "main",
                 "title": "OmniSearch",
-                "width": 820,
-                "height": 600,
-                "resizable": false,
+                "width": 900,
+                "height": 650,
+                "resizable": true,
                 "fullscreen": false,
                 "center": true,
                 "decorations": false,
                 "transparent": true,
                 "alwaysOnTop": true,
-                "skipTaskbar": true,
+                "skipTaskbar": false,
                 "visible": true
             }
         ],
@@ -32,6 +33,9 @@
     "bundle": {
         "active": true,
         "targets": "all",
+        "externalBin": [
+            "bin/brain"
+        ],
         "icon": [
             "icons/32x32.png",
             "icons/128x128.png",
@@ -42,7 +46,8 @@
     },
     "plugins": {
         "shell": {
-            "open": true
+            "open": true,
+            "sidecar": true
         },
         "globalShortcut": {
             "shortcuts": {}

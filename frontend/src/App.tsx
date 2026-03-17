@@ -115,13 +115,15 @@ export default function App() {
 
     // ── Render ───────────────────────────────────────────────────────
     return (
-        <div className="flex items-center justify-center min-h-screen bg-black/20">
-            <div
-                className="w-[800px] h-[560px] flex flex-col bg-zinc-900 rounded-2xl border border-zinc-700/50 shadow-2xl shadow-black/80 overflow-hidden"
-                style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif" }}
-            >
-                {view === "search" && (
-                    <>
+        <div className="flex flex-col h-screen bg-zinc-900 overflow-hidden" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif" }}>
+            {view === "search" && (
+                <>
+                    <div
+                        data-tauri-drag-region
+                        className="w-full h-8 flex items-center px-4 bg-zinc-900 border-b border-zinc-800 flex-shrink-0 cursor-default"
+                    >
+                        <span className="text-[10px] uppercase tracking-widest text-zinc-600 font-bold pointer-events-none">OmniSearch</span>
+                    </div>
                         <div className="flex items-center border-b border-zinc-800">
                             <div className="flex-1">
                                 <SearchBar
@@ -225,8 +227,7 @@ export default function App() {
                         />
                         <CloudSyncPanel />
                     </>
-                )}
-            </div>
+            )}
         </div>
     );
 }
@@ -255,8 +256,8 @@ function ViewHeader({ icon, title, subtitle, onBack, shortcut }: {
     shortcut?: string;
 }) {
     return (
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 flex-shrink-0">
-            <div className="flex items-center gap-2">
+        <div data-tauri-drag-region className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 flex-shrink-0 cursor-default">
+            <div className="flex items-center gap-2 pointer-events-none">
                 {icon}
                 <span className="text-sm font-medium text-zinc-200">{title}</span>
                 <span className="text-xs text-zinc-600">{subtitle}</span>
