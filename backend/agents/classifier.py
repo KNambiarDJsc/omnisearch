@@ -1,26 +1,3 @@
-"""
-agents/classifier.py — Intent classifier for query routing.
-
-Routes user queries to the correct agent:
-  "Summarize research.pdf"          → summary
-  "Write email from meeting notes"  → email
-  "What files do I have about ML?"  → search
-  "What did we decide in Q3?"       → qa
-  "Analyze the meeting recording"   → media
-  "Prepare a report from my papers" → orchestrator (multi-step)
-
-Strategy:
-  1. Fast rule-based pre-classification (regex patterns, zero LLM cost)
-  2. LLM fallback for ambiguous queries
-  3. "orchestrator" intent triggers the LangGraph workflow (Phase 8)
-
-Returns IntentResult with:
-  - agent:      which agent to route to (or "orchestrator")
-  - confidence: 0.0-1.0
-  - reasoning:  why this routing was chosen
-  - workflow:   for orchestrator intent, the suggested workflow steps
-"""
-
 from __future__ import annotations
 
 import logging

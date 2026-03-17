@@ -1,24 +1,3 @@
-"""
-agents/email_agent.py — Generates professional emails from document context.
-
-Example queries:
-  "Write an email summarizing the meeting notes"
-  "Draft a follow-up email from the project update doc"
-  "Email stakeholders about the Q3 results"
-  "Write a cold outreach based on the research paper"
-
-Output format:
-  Subject: [subject line]
-  
-  [email body]
-
-Extracts:
-  - Subject line
-  - Recipient context (if specified)
-  - Tone (formal/casual, inferred from context)
-  - Action items to include
-"""
-
 from __future__ import annotations
 
 import re

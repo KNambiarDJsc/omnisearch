@@ -1,19 +1,15 @@
-# ── Python / uv ──────────────────────────────────────────────────
+# ───────────────── Python / uv ─────────────────
 __pycache__/
 *.py[cod]
 *$py.class
-*.pyc
-*.pyo
-*.pyd
 .Python
 
-# uv
 .venv/
 venv/
 .uv/
 uv.lock
 
-# Distribution / packaging
+# Distribution
 dist/
 build/
 *.egg-info/
@@ -23,52 +19,63 @@ wheels/
 pip-wheel-metadata/
 MANIFEST
 
-# ── Environment variables ────────────────────────────────────────
+# ───────────────── Environment ─────────────────
 .env
 .env.local
 .env.*.local
 !.env.example
 
-# ── OmniSearch data / storage ────────────────────────────────────
+# ───────────────── OmniSearch Storage ──────────
 storage/qdrant/
 storage/bm25_index.pkl
 storage/watched_folders.json
 
-# Reranker model cache (downloaded on first run, ~280MB)
+# Model caches
 backend/.cache/
-~/.cache/huggingface/
-~/.cache/torch/
+.cache/
+~/.cache/
 
-# PyInstaller compiled sidecar binary
+# ───────────────── Backend Binaries ────────────
+# PyInstaller output (sidecar)
 src-tauri/bin/brain
 src-tauri/bin/brain.exe
 
-# ── Node / Frontend ──────────────────────────────────────────────
+# ───────────────── Node / Frontend ─────────────
 node_modules/
 frontend/node_modules/
+
 frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
-*.local
 
-# Build outputs
 dist/
 dist-ssr/
 
-# ── Tauri / Rust ─────────────────────────────────────────────────
+*.local
+
+# ───────────────── Rust / Tauri ────────────────
+# Build artifacts (ALWAYS ignore)
 src-tauri/target/
+target/
+
+# Keep lock file (IMPORTANT for apps)
+# ❌ DO NOT ignore Cargo.lock
+
+# Tauri bundler tools
 src-tauri/WixTools/
 
-# Tauri build artifacts
+# Tauri outputs
 *.dmg
 *.deb
 *.rpm
 *.AppImage
 *.msi
+
+# Ignore all exe EXCEPT sidecar binaries if needed
 *.exe
 !src-tauri/bin/*.exe
 
-# ── IDEs ─────────────────────────────────────────────────────────
+# ───────────────── IDE ─────────────────────────
 .vscode/
 !.vscode/extensions.json
 .idea/
@@ -77,17 +84,12 @@ src-tauri/WixTools/
 *.ipr
 .cursor/
 
-# ── OS ───────────────────────────────────────────────────────────
+# ───────────────── OS ──────────────────────────
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# ── Logs ─────────────────────────────────────────────────────────
+# ───────────────── Logs ────────────────────────
 *.log
 logs/
 npm-debug.log*
@@ -95,14 +97,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ── Testing ──────────────────────────────────────────────────────
+# ───────────────── Testing ─────────────────────
 .pytest_cache/
 .coverage
 coverage/
 htmlcov/
 .hypothesis/
 
-# ── Misc ─────────────────────────────────────────────────────────
+# ───────────────── Misc ────────────────────────
 *.bak
 *.swp
 *.swo

@@ -5,18 +5,25 @@ description = "OmniSearch — Local Multimodal AI Search"
 authors = []
 license = ""
 repository = ""
+default-run = "omnisearch"
 edition = "2021"
 rust-version = "1.77.2"
 
+# Required for Tauri 2 — exposes the lib for tauri::generate_context!()
+[lib]
+name = "omnisearch_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+# Required — tauri-build sets OUT_DIR and generates tauri.conf.json context
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
-tauri-plugin-shell = "2"
+tauri                    = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-shell       = "2"
 tauri-plugin-global-shortcut = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde                    = { version = "1", features = ["derive"] }
+serde_json               = "1"
 
 [features]
 default = ["custom-protocol"]
@@ -26,8 +33,8 @@ custom-protocol = ["tauri/custom-protocol"]
 incremental = true
 
 [profile.release]
-panic = "abort"
+panic        = "abort"
 codegen-units = 1
-lto = true
-opt-level = "s"
-strip = true
+lto          = true
+opt-level    = "s"
+strip        = true
