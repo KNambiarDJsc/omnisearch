@@ -90,7 +90,7 @@ class BaseAgent(ABC):
         from google.genai import types
         from config import settings
 
-        api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+        api_key = settings.gemini_api_key
         if not api_key:
             raise ValueError("GEMINI_API_KEY not set")
 

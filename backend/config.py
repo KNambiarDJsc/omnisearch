@@ -51,3 +51,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# 🔥 FORCE GLOBAL ENV (guarantees consistency for all modules)
+if settings.gemini_api_key:
+    os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
+
+# 🔥 DEBUG (verify key is loaded)
+print("CONFIG GEMINI KEY:", settings.gemini_api_key[:10] + "..." if settings.gemini_api_key else "NOT FOUND")

@@ -16,11 +16,9 @@ WATCHED_EXTENSIONS = SUPPORTED_EXTENSIONS
 
 
 def _get_client() -> genai.Client:
-    import os
-    api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY not set. Add it to backend/.env")
-    return genai.Client(api_key=api_key)
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY not loaded in settings")
+    return genai.Client(api_key=settings.gemini_api_key)
 
 
 def _normalize(values: list[float]) -> list[float]:

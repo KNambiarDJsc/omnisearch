@@ -175,7 +175,7 @@ def _call_gemini(query: str, context: str, model: str) -> str:
     from google.genai import types
     from config import settings
 
-    api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+    api_key = settings.gemini_api_key
     if not api_key:
         raise ValueError("GEMINI_API_KEY not set")
 
@@ -246,7 +246,7 @@ def stream_copilot(
     from google import genai
     from google.genai import types
 
-    api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+    api_key = settings.gemini_api_key
     client = genai.Client(api_key=api_key)
 
     prompt = f"""Here are the relevant documents from the user's computer:
